@@ -137,11 +137,13 @@ def ask():
 
         usage = chat.usage  # token tracking
 
-        print("✅ Nouvelle réponse générée :")
-        print(f"Contact     : {contact}")
-        print(f"Message     : {user_message}")
-        print(f"Réponse     : {reply}")
-        print(f"🔢 Tokens utilisés : input={usage.prompt_tokens}, output={usage.completion_tokens}, total={usage.total_tokens}")
+    import sys
+
+        print("✅ Nouvelle réponse générée :", file=sys.stderr)
+        print(f"Contact     : {contact}", file=sys.stderr)
+        print(f"Message     : {user_message}", file=sys.stderr)
+        print(f"Réponse     : {reply}", file=sys.stderr)
+        print(f"🔢 Tokens utilisés : input={usage.prompt_tokens}, output={usage.completion_tokens}, total={usage.total_tokens}", file=sys.stderr)
 
         return jsonify({"reply": reply})
 
