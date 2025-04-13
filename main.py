@@ -102,9 +102,15 @@ CHARACTERS = {
 
 }
 import sys
+@app.route("/ping", methods=["GET"])
+def ping():
+    print("📡 Ping reçu", file=sys.stderr)
+    return jsonify({"status": "🟢 Service OK"})
+
 @app.route("/ask", methods=["POST"])
 def ask():
     try:
+        print("📥 Requête reçue", file=sys.stderr)
         data = request.get_json()
         user_message = data.get("message", "")
         contact_raw = data.get("contact", "default").strip()
@@ -146,7 +152,7 @@ def ask():
         return jsonify({"reply": reply})
 
     except Exception as e:
-        print("❌ Erreur :", str(e))
+        print("❌ Erreur :", str(e), file=sys.stderr)
         return jsonify({"error": str(e)}), 500
 
 
