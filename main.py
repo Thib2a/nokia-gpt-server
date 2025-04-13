@@ -101,7 +101,7 @@ CHARACTERS = {
 
 
 }
-
+import sys
 @app.route("/ask", methods=["POST"])
 def ask():
     try:
@@ -136,8 +136,6 @@ def ask():
             reply = reply[:197].rstrip() + "..."
 
         usage = chat.usage  # token tracking
-
-    import sys
 
         print("✅ Nouvelle réponse générée :", file=sys.stderr)
         print(f"Contact     : {contact}", file=sys.stderr)
