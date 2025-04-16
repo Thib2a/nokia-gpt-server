@@ -105,7 +105,6 @@ CHARACTERS = {
         "Tu ne dis jamais que tu es une IA. "
         "Réponds en 180 caractères maximum. Varie ta formulation à chaque message."
     ),
-    
 "josiane": (
     "Tu es Josiane, praticienne du Too Many Cooks Institute. "
     "Tu t’exprimes avec calme, lenteur, et un sérieux dérangeant. "
@@ -139,6 +138,12 @@ CHARACTERS = {
 
 }
 import sys
+@app.route("/ping", methods=["GET"])
+def ping():
+    print("📡 Ping reçu", file=sys.stderr)
+    return jsonify({"status": "🟢 Service OK"})
+
+
 @app.route("/ask", methods=["POST"])
 def ask():
     try:
@@ -147,7 +152,6 @@ def ask():
         user_message = data.get("message", "")
         contact_raw = data.get("contact", "default").strip()
         contact = contact_raw.lower()
-        history = data.get("history", None)
 
         # ✅ Vérification si le contact est connu
         if contact not in CHARACTERS:
@@ -157,37 +161,38 @@ def ask():
             })
 
         persona = CHARACTERS[contact]
-        LIMITED_CHARACTERS = ["didier", "mimi", "uncle ben's", "uncle tchibayoult", "anus", "tmci"]
-        max_tok = 180 if contact in LIMITED_CHARACTERS else 600
 
-        # ✅ Historique accepté uniquement pour Josiane et Titouan
-        if contact in ["josiane", "titouan"] and history:
-            # ⚠️ On limite à 20 messages max (10 allers-retours)
-            if len(history) >= 20:
-                return jsonify({
-                    "reply": "Cette conversation a été clôturée pour garantir votre sécurité émotionnelle. Merci de reformuler une nouvelle demande si besoin."
-                })
-            messages = [{"role": "system", "content": persona}] + history
-        else:
-            messages = [
-                {"role": "system", "content": persona},
-                {"role": "user", "content": user_message}
-            ]
+        # ✅ max_tokens personnalisé selon le type de personnage
+LIMITED_CHARACTERS = ["didier", "mimi", "uncle ben's", "uncle tchibayoult", "anus", "tmci"]
+max_tok = 180 if contact in LIMITED_CHARACTERS else 600
 
-        chat = client.chat.completions.create(
-            model=DEFAULT_MODEL,
-            messages=messages,
-            temperature=0.95,
-            max_tokens=max_tok
-        )
+history = data.get("history", None)
 
+if contact in ["josiane", "titouan"] and history:
+    if len(history) >= 20:
+        return jsonify({
+            "reply": "Cette conversation a été clôturée pour garantir votre sécurité émotionnelle. Merci de reformuler une nouvelle demande si besoin."
+        })
+    messages = [{"role": "system", "content": persona}] + history
+else:
+    messages = [
+        {"role": "system", "content": persona},
+        {"role": "user", "content": user_message}
+    ]
+
+chat = client.chat.completions.create(
+    model=DEFAULT_MODEL,
+    messages=messages,
+    temperature=0.95,
+    max_tokens=max_tok
+)
         reply = chat.choices[0].message.content.strip()
 
         # ✅ Troncature uniquement pour les personnages limités
         if contact in LIMITED_CHARACTERS and len(reply) > 200:
             reply = reply[:197].rstrip() + "..."
 
-        usage = chat.usage
+        usage = chat.usage  # token tracking
 
         print("✅ Nouvelle réponse générée :", file=sys.stderr)
         print(f"Contact     : {contact}", file=sys.stderr)
@@ -200,6 +205,7 @@ def ask():
     except Exception as e:
         print("❌ Erreur :", str(e), file=sys.stderr)
         return jsonify({"error": str(e)}), 500
+
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=8080)
