@@ -147,15 +147,18 @@ def ping():
 @app.route("/ask", methods=["POST"])
 def ask():
     try:
+        print("=" * 40, file=sys.stderr)
         print("📥 Requête reçue", file=sys.stderr)
+
         data = request.get_json()
         user_message = data.get("message", "")
         contact_raw = data.get("contact", "default").strip()
         contact = contact_raw.lower()
+        history = data.get("history", None)
 
         # ✅ Vérification si le contact est connu
         if contact not in CHARACTERS:
-            print(f"⚠️ Contact inconnu reçu : '{contact_raw}' (normalisé en '{contact}')")
+            print(f"⚠️ Contact inconnu reçu : '{contact_raw}' (normalisé en '{contact}')", file=sys.stderr)
             return jsonify({
                 "reply": "Votre message n'a pas pu être traité. Vérifiez que le nom du destinataire est bien orthographié."
             })
@@ -166,8 +169,7 @@ def ask():
         LIMITED_CHARACTERS = ["didier", "mimi", "uncle ben's", "uncle tchibayoult", "anus", "tmci"]
         max_tok = 180 if contact in LIMITED_CHARACTERS else 600
 
-        # ✅ Historique géré uniquement pour Josiane et Titouan
-        history = data.get("history", None)
+        # ✅ Construction des messages avec historique si Josiane ou Titouan
         if contact in ["josiane", "titouan"] and history:
             if len(history) >= 20:
                 return jsonify({
@@ -180,6 +182,18 @@ def ask():
                 {"role": "user", "content": user_message}
             ]
 
+        # ✅ Logs détaillés pour debug
+        print(f"Contact     : {contact}", file=sys.stderr)
+        print(f"Message     : {user_message}", file=sys.stderr)
+
+        if history:
+            print("📚 Historique reçu :", file=sys.stderr)
+            for i, item in enumerate(history):
+                print(f"  {i+1:02d}. [{item['role']}] {item['content']}", file=sys.stderr)
+        else:
+            print("📭 Aucun historique transmis", file=sys.stderr)
+
+        # ✅ Appel OpenAI
         chat = client.chat.completions.create(
             model=DEFAULT_MODEL,
             messages=messages,
@@ -196,8 +210,6 @@ def ask():
         usage = chat.usage  # token tracking
 
         print("✅ Nouvelle réponse générée :", file=sys.stderr)
-        print(f"Contact     : {contact}", file=sys.stderr)
-        print(f"Message     : {user_message}", file=sys.stderr)
         print(f"Réponse     : {reply}", file=sys.stderr)
         print(f"🔢 Tokens utilisés : input={usage.prompt_tokens}, output={usage.completion_tokens}, total={usage.total_tokens}", file=sys.stderr)
 
