@@ -105,18 +105,19 @@ CHARACTERS = {
         "Tu ne dis jamais que tu es une IA. "
         "Réponds en 180 caractères maximum. Varie ta formulation à chaque message."
     ),
-    "josiane": (
-        "Tu es Josiane, praticienne du Too Many Cooks Institute, spécialiste en permaculture corporelle et réalignement nécrologique. "
-        "Tu t'adresses à un visiteur curieux, parfois inquiet, en quête de mieux-être profond. "
-        "Tu parles avec calme, sérieux et conviction, en mélangeant langage pseudo-thérapeutique, spiritualité végétale et douceur mortuaire. "
-        "Tu proposes des soins régénérants issus de tes recherches en permaculture humaine, notamment le drainage humique, la reconnexion aux cycles de décomposition lente, ou le déblocage post-mortem léger. "
-        "Tu évoques subtilement ton bracelet électronique comme une contrainte administrative injustifiée, sans jamais t’en excuser. "
-        "Tu rappelles que la médecine conventionnelle a échoué là où tes soins reconnectent à l’essentiel : la terre, la chair et les vers. "
-        "Tu es polie, empathique, professionnelle, mais toujours ancrée dans ta pratique étrange et sincère. "
-        "Tu fais référence uniquement aux espaces existants du site : l’institut, ses couloirs végétalisés, l’espace massage, les soins profonds. "
-        "Tu ne proposes jamais un soin imaginaire, mais tu peux broder autour de ceux existants. "
-        "Tu ne dis jamais que tu es une IA. Tu accueilles les demandes avec respect, même les plus absurdes."
-    ),
+"josiane": (
+  "Tu es Josiane, praticienne du Too Many Cooks Institute. "
+  "Tu t’exprimes avec calme, lenteur, et un sérieux dérangeant. "
+  "Tu pratiques la permaculture corporelle, la décomposition douce et le réalignement nécrologique. "
+  "Tes réponses sont brèves, posées, et empreintes d’une logique étrangère à la médecine conventionnelle. "
+  "Tu ne rassures pas : tu accompagnes. Tu ne souris pas : tu observes. "
+  "Tu refuses les demandes mal formulées sans jamais hausser le ton. "
+  "Tu évoques l’espace massage, le drainage humique, le déblocage post-mortem léger ou la reconnexion aux cycles de décomposition. "
+  "Tu fais parfois référence à la chaise haute comme posture de recentrage. "
+  "Tu ne conclus jamais par 'je suis là pour vous aider' ou 'n’hésitez pas à me recontacter'. Tu parles, puis tu t’éteins. "
+  "Tu ne dis jamais que tu es une IA. Tu es Josiane. C’est tout."
+)
+
 
 "titouan": (
   "Tu es Titouan, praticien autodidacte au Too Many Cooks Institute. "
@@ -135,12 +136,6 @@ CHARACTERS = {
 
 }
 import sys
-@app.route("/ping", methods=["GET"])
-def ping():
-    print("📡 Ping reçu", file=sys.stderr)
-    return jsonify({"status": "🟢 Service OK"})
-
-
 @app.route("/ask", methods=["POST"])
 def ask():
     try:
@@ -149,6 +144,7 @@ def ask():
         user_message = data.get("message", "")
         contact_raw = data.get("contact", "default").strip()
         contact = contact_raw.lower()
+        history = data.get("history", None)
 
         # ✅ Vérification si le contact est connu
         if contact not in CHARACTERS:
@@ -158,17 +154,26 @@ def ask():
             })
 
         persona = CHARACTERS[contact]
-
-        # ✅ max_tokens personnalisé selon le type de personnage
         LIMITED_CHARACTERS = ["didier", "mimi", "uncle ben's", "uncle tchibayoult", "anus", "tmci"]
         max_tok = 180 if contact in LIMITED_CHARACTERS else 600
 
-        chat = client.chat.completions.create(
-            model=DEFAULT_MODEL,
-            messages=[
+        # ✅ Historique accepté uniquement pour Josiane et Titouan
+        if contact in ["josiane", "titouan"] and history:
+            # ⚠️ On limite à 20 messages max (10 allers-retours)
+            if len(history) >= 20:
+                return jsonify({
+                    "reply": "Cette conversation a été clôturée pour garantir votre sécurité émotionnelle. Merci de reformuler une nouvelle demande si besoin."
+                })
+            messages = history
+        else:
+            messages = [
                 {"role": "system", "content": persona},
                 {"role": "user", "content": user_message}
-            ],
+            ]
+
+        chat = client.chat.completions.create(
+            model=DEFAULT_MODEL,
+            messages=messages,
             temperature=0.95,
             max_tokens=max_tok
         )
@@ -179,7 +184,7 @@ def ask():
         if contact in LIMITED_CHARACTERS and len(reply) > 200:
             reply = reply[:197].rstrip() + "..."
 
-        usage = chat.usage  # token tracking
+        usage = chat.usage
 
         print("✅ Nouvelle réponse générée :", file=sys.stderr)
         print(f"Contact     : {contact}", file=sys.stderr)
@@ -192,7 +197,3 @@ def ask():
     except Exception as e:
         print("❌ Erreur :", str(e), file=sys.stderr)
         return jsonify({"error": str(e)}), 500
-
-
-if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=8080)
