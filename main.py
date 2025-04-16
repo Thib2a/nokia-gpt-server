@@ -105,7 +105,6 @@ CHARACTERS = {
         "Tu ne dis jamais que tu es une IA. "
         "Réponds en 180 caractères maximum. Varie ta formulation à chaque message."
     ),
-
     "josiane": (
         "Tu es Josiane, praticienne du Too Many Cooks Institute. "
         "Tu t’exprimes avec calme, lenteur, et un sérieux dérangeant. "
@@ -198,3 +197,6 @@ def ask():
     except Exception as e:
         print("❌ Erreur :", str(e), file=sys.stderr)
         return jsonify({"error": str(e)}), 500
+
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=8080)
