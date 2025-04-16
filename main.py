@@ -163,29 +163,30 @@ def ask():
         persona = CHARACTERS[contact]
 
         # ✅ max_tokens personnalisé selon le type de personnage
-LIMITED_CHARACTERS = ["didier", "mimi", "uncle ben's", "uncle tchibayoult", "anus", "tmci"]
-max_tok = 180 if contact in LIMITED_CHARACTERS else 600
+        LIMITED_CHARACTERS = ["didier", "mimi", "uncle ben's", "uncle tchibayoult", "anus", "tmci"]
+        max_tok = 180 if contact in LIMITED_CHARACTERS else 600
 
-history = data.get("history", None)
+        # ✅ Historique géré uniquement pour Josiane et Titouan
+        history = data.get("history", None)
+        if contact in ["josiane", "titouan"] and history:
+            if len(history) >= 20:
+                return jsonify({
+                    "reply": "Cette conversation a été clôturée pour garantir votre sécurité émotionnelle. Merci de reformuler une nouvelle demande si besoin."
+                })
+            messages = [{"role": "system", "content": persona}] + history
+        else:
+            messages = [
+                {"role": "system", "content": persona},
+                {"role": "user", "content": user_message}
+            ]
 
-if contact in ["josiane", "titouan"] and history:
-    if len(history) >= 20:
-        return jsonify({
-            "reply": "Cette conversation a été clôturée pour garantir votre sécurité émotionnelle. Merci de reformuler une nouvelle demande si besoin."
-        })
-    messages = [{"role": "system", "content": persona}] + history
-else:
-    messages = [
-        {"role": "system", "content": persona},
-        {"role": "user", "content": user_message}
-    ]
+        chat = client.chat.completions.create(
+            model=DEFAULT_MODEL,
+            messages=messages,
+            temperature=0.95,
+            max_tokens=max_tok
+        )
 
-chat = client.chat.completions.create(
-    model=DEFAULT_MODEL,
-    messages=messages,
-    temperature=0.95,
-    max_tokens=max_tok
-)
         reply = chat.choices[0].message.content.strip()
 
         # ✅ Troncature uniquement pour les personnages limités
@@ -205,7 +206,6 @@ chat = client.chat.completions.create(
     except Exception as e:
         print("❌ Erreur :", str(e), file=sys.stderr)
         return jsonify({"error": str(e)}), 500
-
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=8080)
