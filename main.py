@@ -14,8 +14,8 @@ CORS(app, origins=[
 # Nouvelle syntaxe client OpenAI >=1.0
 client = openai.OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
 
-# Choix du modèle ici : gpt-3.5-turbo ou gpt-4
-DEFAULT_MODEL = "gpt-3.5-turbo"
+# Choix du modèle ici : gpt-3.5-turbo ou gpt-4o
+DEFAULT_MODEL = "gpt-4o"
 
 # Personnalités configurées
 CHARACTERS = {
@@ -165,7 +165,7 @@ def ask():
 
         # ✅ Construction des messages avec historique si Josiane ou Titouan
         if contact in ["josiane", "titouan"] and history:
-            if len(history) >= 20:
+            if len(history) >= 60:
                 return jsonify({
                     "reply": "Cette conversation a été clôturée pour garantir votre sécurité émotionnelle. Merci de reformuler une nouvelle demande si besoin."
                 })
