@@ -142,9 +142,6 @@ CHARACTERS = {
     )
 }
 
-
-
-}
 import sys
 @app.route("/ping", methods=["GET"])
 def ping():
